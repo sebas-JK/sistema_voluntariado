@@ -1,5 +1,7 @@
-// sistema_voluntariado/js/geolocation.js - MODIFICADO PARA MYSQL
-// NOTA: Este archivo se mantiene casi igual ya que funciona principalmente en el cliente
+// sistema_voluntariado/js/geolocation.js - VERSIÓN CORREGIDA
+
+// Configuración inicial
+if (typeof window.campanias === 'undefined') window.campanias = [];
 
 // =============================================
 // SISTEMA DE GEOLOCALIZACIÓN - INTERFAZ DE USUARIO
@@ -9,7 +11,7 @@ let mapa = null;
 let marcadores = [];
 let ubicacionUsuario = null;
 
-// Base de datos de coordenadas de ciudades (simulada) - se mantiene igual
+// Base de datos de coordenadas de ciudades (simulada)
 const coordenadasCiudades = {
     "Buenos Aires": { lat: -34.6037, lng: -58.3816 },
     "Córdoba": { lat: -31.4201, lng: -64.1888 },
@@ -185,29 +187,29 @@ async function obtenerYMostrarUbicacion() {
         
     } catch (error) {
         console.error('Error obteniendo ubicación:', error);
-        alert('No se pudo obtener tu ubicación. Usando ubicación por defecto.');
         
         // Usar ubicación por defecto
         ubicacionUsuario = { lat: -34.6037, lng: -58.3816, porDefecto: true };
         await cargarCampaniasParaMapa();
+        
+        // Mostrar alerta solo si el usuario no lo canceló explícitamente
+        if (error.code !== error.PERMISSION_DENIED && error.code !== error.TIMEOUT) {
+            alert('No se pudo obtener tu ubicación. Usando ubicación por defecto.');
+        }
     }
 }
 
 async function cargarCampaniasParaMapa() {
     try {
-        // Cargar campañas activas desde la API
-        const response = await fetch(`${API_BASE}/campaigns.php?action=get_active`);
-        const campaniasActivas = await response.json();
-        
-        // Actualizar array global
-        campanias = campaniasActivas;
+        // Usar campañas ya cargadas en memoria
+        const todasCampanias = window.campanias || [];
         
         // Mostrar campañas cercanas
         await mostrarCampaniasCercanas();
         
     } catch (error) {
         console.error('Error cargando campañas para mapa:', error);
-        // Usar campañas ya cargadas en memoria
+        // Mostrar campañas ya cargadas en memoria
         mostrarCampaniasCercanas();
     }
 }
@@ -252,8 +254,10 @@ async function mostrarCampaniasCercanas() {
 }
 
 function obtenerCampaniasCercanas(lat, lng, radioKm = 50) {
-    const campaniasConDistancia = campanias
-        .filter(c => c.estado === 'activa')
+    const todasCampanias = window.campanias || [];
+    
+    const campaniasConDistancia = todasCampanias
+        .filter(c => c && c.estado === 'activa')
         .map(campania => {
             const coords = obtenerCoordenadas(campania.ubicacion);
             const distancia = calcularDistancia(lat, lng, coords.lat, coords.lng);
@@ -271,6 +275,10 @@ function obtenerCampaniasCercanas(lat, lng, radioKm = 50) {
 }
 
 function obtenerCoordenadas(ubicacion) {
+    if (!ubicacion) {
+        return { lat: -34.6037, lng: -58.3816 }; // Buenos Aires por defecto
+    }
+    
     // Buscar en la base de datos de ciudades
     for (const [ciudad, coords] of Object.entries(coordenadasCiudades)) {
         if (ubicacion.toLowerCase().includes(ciudad.toLowerCase())) {
@@ -331,15 +339,15 @@ function actualizarListaCampanias(campaniasCercanas) {
             ${campaniasFiltradas.map(campania => `
                 <div class="campaign-map-item" onclick="centrarEnCampania(${campania.coordenadas.lat}, ${campania.coordenadas.lng})">
                     <div class="campaign-map-header">
-                        <h4>${campania.titulo}</h4>
+                        <h4>${campania.titulo || 'Sin título'}</h4>
                         <span class="distance-badge ${obtenerClaseDistancia(campania.distancia)}">
                             ${formatearDistancia(campania.distancia)}
                         </span>
                     </div>
-                    <p class="campaign-org">${campania.organizacion_nombre}</p>
-                    <p class="campaign-location">📍 ${campania.ubicacion}</p>
+                    <p class="campaign-org">${campania.organizacion_nombre || 'Organización desconocida'}</p>
+                    <p class="campaign-location">📍 ${campania.ubicacion || 'Ubicación no especificada'}</p>
                     <div class="campaign-map-details">
-                        <span>👥 ${campania.voluntarios_actuales}/${campania.max_voluntarios}</span>
+                        <span>👥 ${campania.voluntarios_actuales || 0}/${campania.max_voluntarios || 0}</span>
                         <span>📅 ${formatearFecha(campania.fecha)}</span>
                     </div>
                     <button class="btn btn-small" onclick="event.stopPropagation(); aplicarACampania(${campania.id})">
@@ -368,11 +376,11 @@ function actualizarMapaCampanias(campaniasCercanas) {
             .addTo(mapa)
             .bindPopup(`
                 <div class="campaign-popup">
-                    <h4>${campania.titulo}</h4>
-                    <p><strong>Organización:</strong> ${campania.organizacion_nombre}</p>
-                    <p><strong>Ubicación:</strong> ${campania.ubicacion}</p>
+                    <h4>${campania.titulo || 'Sin título'}</h4>
+                    <p><strong>Organización:</strong> ${campania.organizacion_nombre || 'Desconocida'}</p>
+                    <p><strong>Ubicación:</strong> ${campania.ubicacion || 'No especificada'}</p>
                     <p><strong>Distancia:</strong> ${formatearDistancia(campania.distancia)}</p>
-                    <p><strong>Voluntarios:</strong> ${campania.voluntarios_actuales}/${campania.max_voluntarios}</p>
+                    <p><strong>Voluntarios:</strong> ${campania.voluntarios_actuales || 0}/${campania.max_voluntarios || 0}</p>
                     <p><strong>Fecha:</strong> ${formatearFecha(campania.fecha)}</p>
                     <button class="btn btn-small" onclick="aplicarACampania(${campania.id})">
                         Postularme
@@ -447,6 +455,19 @@ function formatearDistancia(distanciaKm) {
         return `${Math.round(distanciaKm * 1000)} m`;
     } else {
         return `${distanciaKm} km`;
+    }
+}
+
+function formatearFecha(fechaString) {
+    try {
+        const fecha = new Date(fechaString);
+        return fecha.toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    } catch (error) {
+        return fechaString || 'Fecha no especificada';
     }
 }
 

@@ -1,4 +1,9 @@
-// sistema_voluntariado/js/calendar.js - MODIFICADO PARA MYSQL
+// sistema_voluntariado/js/calendar.js - VERSIÓN CORREGIDA
+
+// Configuración inicial
+if (typeof window.campanias === 'undefined') window.campanias = [];
+if (typeof window.currentMonth === 'undefined') window.currentMonth = new Date().getMonth();
+if (typeof window.currentYear === 'undefined') window.currentYear = new Date().getFullYear();
 
 async function generateCalendar() {
     const calendarGrid = document.getElementById('calendar-grid');
@@ -9,27 +14,21 @@ async function generateCalendar() {
     try {
         // Cargar campañas para el mes actual
         const hoy = new Date();
-        const primerDiaMes = new Date(currentYear, currentMonth, 1);
-        const ultimoDiaMes = new Date(currentYear, currentMonth + 1, 0);
+        const primerDiaMes = new Date(window.currentYear, window.currentMonth, 1);
+        const ultimoDiaMes = new Date(window.currentYear, window.currentMonth + 1, 0);
         
-        // Formatear fechas para la API
-        const fechaInicio = primerDiaMes.toISOString().split('T')[0];
-        const fechaFin = ultimoDiaMes.toISOString().split('T')[0];
-        
-        // En una implementación real, necesitarías un endpoint específico para campañas por rango de fechas
-        // Por ahora, cargamos todas las campañas activas y filtramos localmente
-        const response = await fetch(`${API_BASE}/campaigns.php?action=get_active`);
-        const todasCampanias = await response.json();
+        // Usar campañas ya cargadas en memoria
+        const todasCampanias = window.campanias || [];
         
         // Filtrar campañas del mes actual
         const campaniasMes = todasCampanias.filter(campania => {
+            if (!campania || !campania.fecha) return false;
             const fechaCampania = new Date(campania.fecha);
-            return fechaCampania.getMonth() === currentMonth && 
-                   fechaCampania.getFullYear() === currentYear;
+            return fechaCampania.getMonth() === window.currentMonth && 
+                   fechaCampania.getFullYear() === window.currentYear;
         });
         
-        // Actualizar array global
-        campanias = campaniasMes;
+        console.log(`📅 ${campaniasMes.length} campañas para ${window.currentMonth}/${window.currentYear}`);
         
         // Generar calendario
         generarCalendarioHTML(calendarGrid, campaniasMes);
@@ -55,17 +54,17 @@ function generarCalendarioHTML(calendarGrid, campaniasMes) {
     });
     
     // Obtener primer día del mes y último día del mes
-    const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const firstDay = new Date(window.currentYear, window.currentMonth, 1);
+    const lastDay = new Date(window.currentYear, window.currentMonth + 1, 0);
     
     // Días del mes anterior para completar la primera semana
-    const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
+    const prevMonthLastDay = new Date(window.currentYear, window.currentMonth, 0).getDate();
     const startingDay = firstDay.getDay(); // 0 = Domingo, 1 = Lunes, etc.
     
     // Actualizar el título del mes
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    document.getElementById('current-month').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+    document.getElementById('current-month').textContent = `${monthNames[window.currentMonth]} ${window.currentYear}`;
     
     // Días del mes anterior
     for (let i = startingDay - 1; i >= 0; i--) {
@@ -82,7 +81,7 @@ function generarCalendarioHTML(calendarGrid, campaniasMes) {
         dayElement.className = 'calendar-day';
         
         // Marcar si es hoy
-        if (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
+        if (day === today.getDate() && window.currentMonth === today.getMonth() && window.currentYear === today.getFullYear()) {
             dayElement.classList.add('today');
         }
         
@@ -92,8 +91,8 @@ function generarCalendarioHTML(calendarGrid, campaniasMes) {
         const dayEvents = campaniasMes.filter(campania => {
             const campaniaDate = new Date(campania.fecha);
             return campaniaDate.getDate() === day && 
-                   campaniaDate.getMonth() === currentMonth && 
-                   campaniaDate.getFullYear() === currentYear;
+                   campaniaDate.getMonth() === window.currentMonth && 
+                   campaniaDate.getFullYear() === window.currentYear;
         });
         
         dayEvents.forEach(event => {
@@ -125,14 +124,14 @@ function generarCalendarioHTML(calendarGrid, campaniasMes) {
 }
 
 function changeMonth(direction) {
-    currentMonth += direction;
+    window.currentMonth += direction;
     
-    if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-    } else if (currentMonth < 0) {
-        currentMonth = 11;
-        currentYear--;
+    if (window.currentMonth > 11) {
+        window.currentMonth = 0;
+        window.currentYear++;
+    } else if (window.currentMonth < 0) {
+        window.currentMonth = 11;
+        window.currentYear--;
     }
     
     generateCalendar();

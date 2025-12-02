@@ -1,10 +1,25 @@
-// sistema_voluntariado/js/messaging.js - MODIFICADO PARA MYSQL
+// sistema_voluntariado/js/messaging.js - VERSIÓN CORREGIDA
+
+// Configuración inicial
+if (typeof window.currentUser === 'undefined') window.currentUser = null;
+if (typeof window.mensajes === 'undefined') window.mensajes = [];
+if (typeof window.usuarios === 'undefined') window.usuarios = [];
+
+// Definir sincronizarCambio si no existe
+if (typeof sincronizarCambio === 'undefined') {
+    window.sincronizarCambio = async function(tipo, datos) {
+        console.log(`⚠️ sincronizarCambio stub - ${tipo}:`, datos);
+        return { success: true };
+    };
+}
 
 let conversacionActual = null;
 let intervaloMensajes = null;
 
 async function cargarPaginaMensajes() {
     try {
+        const currentUser = window.currentUser;
+        
         if (!currentUser || !currentUser.id) {
             console.error('❌ Usuario no logueado');
             const container = document.getElementById('messages-page');
@@ -113,6 +128,7 @@ async function cargarPaginaMensajes() {
 
 async function generarListaConversaciones() {
     try {
+        const currentUser = window.currentUser;
         const conversaciones = await obtenerConversacionesUsuario();
         
         if (!conversaciones || conversaciones.length === 0) {
@@ -154,8 +170,14 @@ async function generarListaConversaciones() {
 
 async function obtenerConversacionesUsuario() {
     try {
+        const currentUser = window.currentUser;
+        if (!currentUser || !currentUser.id) {
+            console.warn('⚠️ No hay usuario logueado para obtener conversaciones');
+            return [];
+        }
+        
         // Cargar mensajes del usuario desde API
-        const response = await fetch(`${API_BASE}/messages.php?action=get_user&user_id=${currentUser.id}`);
+        const response = await fetch(`${API_BASE}messages.php?action=get_user&user_id=${currentUser.id}`);
         const mensajesUsuario = await response.json();
         
         // Agrupar mensajes por conversación
@@ -201,6 +223,7 @@ async function obtenerConversacionesUsuario() {
 
 function obtenerOtroUsuarioConversacion(conversacion) {
     try {
+        const currentUser = window.currentUser;
         if (!conversacion || !currentUser) {
             return { nombre: 'Usuario desconocido', rol: '?' };
         }
@@ -209,6 +232,7 @@ function obtenerOtroUsuarioConversacion(conversacion) {
                              ? conversacion.usuario2_id 
                              : conversacion.usuario1_id;
         
+        const usuarios = window.usuarios || [];
         const usuario = usuarios.find(u => u.id === otroUsuarioId);
         return usuario || { nombre: 'Usuario desconocido', rol: '?' };
     } catch (error) {
@@ -219,7 +243,8 @@ function obtenerOtroUsuarioConversacion(conversacion) {
 
 async function contarMensajesNoLeidos(conversacion) {
     try {
-        if (!conversacion || !conversacion.mensajes || !Array.isArray(conversacion.mensajes)) {
+        const currentUser = window.currentUser;
+        if (!conversacion || !conversacion.mensajes || !Array.isArray(conversacion.mensajes) || !currentUser) {
             return 0;
         }
         
@@ -307,7 +332,9 @@ function generarMensajesChat() {
         
         return conversacionActual.mensajes.map(mensaje => {
             try {
+                const currentUser = window.currentUser;
                 const esMio = mensaje.remitente_id === currentUser.id;
+                const usuarios = window.usuarios || [];
                 const usuario = usuarios.find(u => u.id === mensaje.remitente_id);
                 
                 return `
@@ -335,6 +362,8 @@ function generarMensajesChat() {
 async function enviarMensaje() {
     try {
         const messageText = document.getElementById('message-text');
+        const currentUser = window.currentUser;
+        
         if (!messageText) {
             console.error('❌ Campo de mensaje no encontrado');
             return;
@@ -342,12 +371,12 @@ async function enviarMensaje() {
         
         const texto = messageText.value.trim();
         
-        if (!texto || !conversacionActual) return;
+        if (!texto || !conversacionActual || !currentUser) return;
         
         const otroUsuario = obtenerOtroUsuarioConversacion(conversacionActual);
         
         // Enviar a la API
-        const response = await fetch(`${API_BASE}/messages.php`, {
+        const response = await fetch(`${API_BASE}messages.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -363,7 +392,7 @@ async function enviarMensaje() {
         if (result.success) {
             // Agregar mensaje a la conversación actual
             const nuevoMensaje = result.mensaje || {
-                id: mensajes.length > 0 ? Math.max(...mensajes.map(m => m.id)) + 1 : 1,
+                id: window.mensajes.length > 0 ? Math.max(...window.mensajes.map(m => m.id)) + 1 : 1,
                 remitente_id: currentUser.id,
                 destinatario_id: otroUsuario.id,
                 texto: texto,
@@ -372,35 +401,18 @@ async function enviarMensaje() {
             };
             
             // Agregar a arrays globales
-            mensajes.push(nuevoMensaje);
+            window.mensajes.push(nuevoMensaje);
             
             if (!conversacionActual.mensajes) {
                 conversacionActual.mensajes = [];
             }
             conversacionActual.mensajes.push(nuevoMensaje);
             
-            // Sincronizar
-            await sincronizarCambio('mensaje', {
-                mensaje_new: {
-                    remitente_id: currentUser.id,
-                    destinatario_id: otroUsuario.id,
-                    texto: texto
-                }
-            });
-            
             // Limpiar input y actualizar UI
             messageText.value = '';
             actualizarVistaChat();
             await actualizarListaConversaciones();
             
-            // Notificar al destinatario
-            if (typeof crearNotificacion === 'function') {
-                crearNotificacion(
-                    otroUsuario.id,
-                    'Nuevo mensaje',
-                    `${currentUser.nombre} te envió un mensaje`
-                );
-            }
         } else {
             alert('Error al enviar el mensaje: ' + result.message);
         }
@@ -445,6 +457,9 @@ function cerrarModalNuevoMensaje() {
 
 function generarOpcionesUsuarios() {
     try {
+        const currentUser = window.currentUser;
+        const usuarios = window.usuarios || [];
+        
         if (!usuarios || !Array.isArray(usuarios)) {
             return '<option value="">No hay usuarios disponibles</option>';
         }
@@ -464,8 +479,9 @@ async function crearNuevaConversacion() {
     try {
         const recipientSelect = document.getElementById('message-recipient');
         const messageTextarea = document.getElementById('new-message-text');
+        const currentUser = window.currentUser;
         
-        if (!recipientSelect || !messageTextarea) {
+        if (!recipientSelect || !messageTextarea || !currentUser) {
             alert('Error: elementos del formulario no encontrados');
             return;
         }
@@ -479,7 +495,7 @@ async function crearNuevaConversacion() {
         }
         
         // Enviar mensaje a la API
-        const response = await fetch(`${API_BASE}/messages.php`, {
+        const response = await fetch(`${API_BASE}messages.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -493,23 +509,9 @@ async function crearNuevaConversacion() {
         const result = await response.json();
         
         if (result.success) {
-            // Agregar a arrays globales
-            if (result.mensaje) {
-                mensajes.push(result.mensaje);
-            }
-            
             // Cerrar modal y recargar
             cerrarModalNuevoMensaje();
             await cargarPaginaMensajes();
-            
-            // Notificar al destinatario
-            if (typeof crearNotificacion === 'function') {
-                crearNotificacion(
-                    recipientId,
-                    'Nuevo mensaje',
-                    `${currentUser.nombre} te envió un mensaje`
-                );
-            }
             
             alert('Mensaje enviado correctamente');
         } else {
@@ -524,6 +526,9 @@ async function crearNuevaConversacion() {
 function buscarUsuarios(query) {
     try {
         const conversationsContainer = document.getElementById('conversations-container');
+        const currentUser = window.currentUser;
+        const usuarios = window.usuarios || [];
+        
         if (!conversationsContainer) return;
         
         if (!query.trim()) {
@@ -577,6 +582,7 @@ async function iniciarConversacionConUsuario(usuarioId) {
             await seleccionarConversacion(conversacionExistente.id);
         } else {
             // Crear nueva conversación vacía
+            const currentUser = window.currentUser;
             const nuevaConversacionId = [currentUser.id, usuarioId].sort().join('_');
             const conversacion = {
                 id: nuevaConversacionId,
@@ -600,7 +606,8 @@ async function iniciarConversacionConUsuario(usuarioId) {
 
 async function marcarMensajesComoLeidos(conversacion) {
     try {
-        if (!conversacion || !conversacion.mensajes || !Array.isArray(conversacion.mensajes)) {
+        const currentUser = window.currentUser;
+        if (!conversacion || !conversacion.mensajes || !Array.isArray(conversacion.mensajes) || !currentUser) {
             return;
         }
         
@@ -617,7 +624,7 @@ async function marcarMensajesComoLeidos(conversacion) {
         
         // Actualizar en la API
         if (actualizado && otroUsuario) {
-            await fetch(`${API_BASE}/messages.php`, {
+            await fetch(`${API_BASE}messages.php`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

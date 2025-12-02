@@ -6,11 +6,11 @@ async function cargarHistorialVoluntario() {
     
     try {
         // Obtener postulaciones aprobadas del usuario
-        const responsePostulaciones = await fetch(`${API_BASE}/applications.php?action=get_by_user&user_id=${currentUser.id}`);
+        const responsePostulaciones = await fetch(`${API_BASE}applications.php?action=get_by_user&user_id=${currentUser.id}`);
         const postulacionesAprobadas = (await responsePostulaciones.json()).filter(p => p.estado === 'aprobado');
         
         // Obtener tareas verificadas del usuario
-        const responseTareas = await fetch(`${API_BASE}/tasks.php?action=get_verified&user_id=${currentUser.id}`);
+        const responseTareas = await fetch(`${API_BASE}tasks.php?action=get_verified&user_id=${currentUser.id}`);
         const tareasVerificadas = await responseTareas.json();
         
         // Calcular estadísticas
@@ -154,7 +154,7 @@ async function cargarSeccionCalificaciones() {
 async function obtenerCampañasParaCalificar() {
     try {
         // Obtener campañas en las que el usuario participó
-        const responsePostulaciones = await fetch(`${API_BASE}/applications.php?action=get_by_user&user_id=${currentUser.id}`);
+        const responsePostulaciones = await fetch(`${API_BASE}applications.php?action=get_by_user&user_id=${currentUser.id}`);
         const postulacionesUsuario = await responsePostulaciones.json();
         
         const campañasAprobadas = postulacionesUsuario
@@ -162,7 +162,7 @@ async function obtenerCampañasParaCalificar() {
             .map(p => p.campania_id);
         
         // Obtener campañas ya calificadas
-        const responseRatings = await fetch(`${API_BASE}/ratings.php?action=check_user_rating&user_id=${currentUser.id}`);
+        const responseRatings = await fetch(`${API_BASE}ratings.php?action=check_user_rating&user_id=${currentUser.id}`);
         const ratingsUsuario = await responseRatings.json();
         
         // Filtrar campañas completadas y no calificadas
@@ -170,7 +170,7 @@ async function obtenerCampañasParaCalificar() {
         const campañasCompletadas = [];
         
         for (const campaniaId of campañasAprobadas) {
-            const responseCampania = await fetch(`${API_BASE}/campaigns.php?action=get_by_id&id=${campaniaId}`);
+            const responseCampania = await fetch(`${API_BASE}campaigns.php?action=get_by_id&id=${campaniaId}`);
             const campania = await responseCampania.json();
             
             if (campania && !campania.error) {
@@ -267,7 +267,7 @@ async function enviarCalificacion(ratingCard) {
     if (!campania) return;
     
     try {
-        const response = await fetch(`${API_BASE}/ratings.php`, {
+        const response = await fetch(`${API_BASE}ratings.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -328,7 +328,7 @@ async function enviarCalificacion(ratingCard) {
 
 async function actualizarRatingOrganizacion(organizacionId) {
     try {
-        const response = await fetch(`${API_BASE}/ratings.php?action=get_average&organization_id=${organizacionId}`);
+        const response = await fetch(`${API_BASE}ratings.php?action=get_average&organization_id=${organizacionId}`);
         const ratingData = await response.json();
         
         const organizacion = usuarios.find(u => u.id === organizacionId);
