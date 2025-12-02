@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Gestor de Voluntariados (SGV)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">SGV - Sistema Gestor de Voluntariados</div>
+                <nav>
+                    <ul id="nav-menu">
+                        <!-- El menú se llenará dinámicamente con JavaScript -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Página de Login/Registro -->
+        <div id="login-page" class="page active">
+            <div class="login-container">
+                <h2>Bienvenido al SGV</h2>
+                
+                <div class="tabs">
+                    <div class="tab active" data-tab="login">Iniciar Sesión</div>
+                    <div class="tab" data-tab="register">Registrarse</div>
+                </div>
+                
+                <!-- Formulario de Login -->
+                <div id="login-form" class="tab-content active">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" placeholder="tu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Contraseña</label>
+                        <input type="password" id="login-password" placeholder="Tu contraseña">
+                    </div>
+                    <button class="btn" id="login-btn">Iniciar Sesión</button>
+                </div>
+                
+                <!-- Formulario de Registro -->
+                <div id="register-form" class="tab-content">
+                    <div class="form-group">
+                        <label for="register-name">Nombre completo</label>
+                        <input type="text" id="register-name" placeholder="Tu nombre completo">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" placeholder="tu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Contraseña</label>
+                        <input type="password" id="register-password" placeholder="Crea una contraseña">
+                    </div>
+                    <div class="form-group">
+                        <label for="register-role">Tipo de usuario</label>
+                        <select id="register-role">
+                            <option value="voluntario">Voluntario</option>
+                            <option value="ong">ONG</option>
+                            <option value="coordinador">Coordinador</option>
+                        </select>
+                    </div>
+                    <button class="btn" id="register-btn">Registrarse</button>
+                </div>
+                
+                <div id="login-message" style="margin-top: 1rem;"></div>
+            </div>
+        </div>
+
+        <!-- Página Principal (Campañas) -->
+        <div id="home-page" class="page">
+            <div class="page-header">
+                <h1 class="page-title">Campañas de Voluntariado Disponibles</h1>
+                <div>
+                    <button class="btn" id="view-calendar-btn">Ver Calendario</button>
+                    <button id="create-campaign-btn" class="btn btn-success" style="display: none; margin-left: 10px;">Crear Nueva Campaña</button>
+                </div>
+            </div>
+
+            <!-- Barra de búsqueda y filtros -->
+            <div class="search-filters">
+                <div class="search-bar">
+                    <input type="text" id="search-input" placeholder="Buscar campañas por nombre...">
+                    <button class="btn" id="search-btn">Buscar</button>
+                </div>
+                <div class="filters">
+                    <select id="date-filter">
+                        <option value="">Todas las fechas</option>
+                        <option value="week">Próxima semana</option>
+                        <option value="month">Próximo mes</option>
+                        <option value="specific">Fecha específica</option>
+                    </select>
+                    <input type="date" id="specific-date" style="display: none;">
+                    <select id="location-filter">
+                        <option value="">Todas las ubicaciones</option>
+                    </select>
+                    <button class="btn" id="clear-filters">Limpiar filtros</button>
+                </div>
+            </div>
+            
+            <div id="campaigns-container">
+                <!-- Las campañas se cargarán aquí dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Página de Crear Campaña -->
+        <div id="create-campaign-page" class="page">
+            <div class="form-container">
+                <h2 class="form-title">Crear Nueva Campaña de Voluntariado</h2>
+                
+                <div class="form-group">
+                    <label for="campaign-title">Título de la campaña</label>
+                    <input type="text" id="campaign-title" placeholder="Ej: Limpieza de playas">
+                </div>
+                
+                <div class="form-group">
+                    <label for="campaign-description">Descripción</label>
+                    <textarea id="campaign-description" placeholder="Describe los detalles de la campaña..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="campaign-location">Ubicación</label>
+                    <input type="text" id="campaign-location" placeholder="Ej: Parque Central">
+                </div>
+                
+                <div class="form-group">
+                    <label for="campaign-date">Fecha</label>
+                    <input type="date" id="campaign-date">
+                </div>
+
+                <div class="form-group">
+                    <label for="campaign-time">Hora</label>
+                    <input type="time" id="campaign-time">
+                </div>
+                
+                <div class="form-group">
+                    <label for="campaign-max-volunteers">Máximo de voluntarios</label>
+                    <input type="number" id="campaign-max-volunteers" min="1" value="10">
+                </div>
+
+                <div class="form-group" id="coordinator-assignment" style="display: none;">
+                    <label for="campaign-coordinator">Asignar Coordinador</label>
+                    <select id="campaign-coordinator">
+                        <!-- Se llenará dinámicamente con coordinadores disponibles -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="campaign-requirements">Requisitos especiales (opcional)</label>
+                    <textarea id="campaign-requirements" placeholder="Requisitos que deben cumplir los voluntarios..."></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-success" id="create-campaign-submit">Crear Campaña</button>
+                    <button class="btn" id="cancel-create-campaign">Cancelar</button>
+                </div>
+                
+                <div id="campaign-message" style="margin-top: 1rem;"></div>
+            </div>
+        </div>
+
+        <!-- Página de Perfil de Usuario -->
+        <div id="profile-page" class="page">
+            <div class="page-header">
+                <h1 class="page-title">Mi Perfil</h1>
+            </div>
+            
+            <div class="user-info">
+                <!-- La información del usuario se cargará aquí dinámicamente -->
+            </div>
+            
+            <div id="user-campaigns">
+                <!-- El contenido específico del perfil se cargará aquí -->
+            </div>
+        </div>
+
+        <!-- Página de Edición de Perfil -->
+        <div id="edit-profile-page" class="page">
+            <div class="form-container">
+                <h2 class="form-title">Editar Perfil</h2>
+                
+                <div class="form-group">
+                    <label for="edit-name">Nombre</label>
+                    <input type="text" id="edit-name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-email">Email</label>
+                    <input type="email" id="edit-email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-phone">Teléfono</label>
+                    <input type="tel" id="edit-phone">
+                </div>
+                
+                <!-- Campos específicos para cada rol -->
+                <div id="edit-ong-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="edit-description">Descripción de la ONG</label>
+                        <textarea id="edit-description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-address">Dirección</label>
+                        <input type="text" id="edit-address">
+                    </div>
+                </div>
+                
+                <div id="edit-coordinator-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="edit-specialty">Especialidad</label>
+                        <input type="text" id="edit-specialty">
+                    </div>
+                </div>
+                
+                <div id="edit-volunteer-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="edit-interests">Intereses (separados por comas)</label>
+                        <input type="text" id="edit-interests" placeholder="Medio Ambiente, Educación, Salud...">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-notifications">
+                        <input type="checkbox" id="edit-notifications"> Recibir notificaciones
+                    </label>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-success" id="save-profile-btn">Guardar Cambios</button>
+                    <button class="btn" id="cancel-edit-profile">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Página de Gestión de Postulaciones (Coordinador) -->
+        <div id="applications-page" class="page">
+            <div class="page-header">
+                <h1 class="page-title">Gestión de Postulaciones</h1>
+                <button class="btn" id="back-from-applications">Volver a Inicio</button>
+            </div>
+            
+            <div id="applications-container">
+                <!-- Las postulaciones se cargarán aquí dinámicamente -->
+            </div>
+        </div>
+
+        <!-- Página de Calendario -->
+        <div id="calendar-page" class="page">
+            <div class="page-header">
+                <h1 class="page-title">Calendario de Actividades</h1>
+                <button class="btn" id="back-from-calendar">Volver a Inicio</button>
+            </div>
+            
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button class="btn" id="prev-month">Mes Anterior</button>
+                    <h2 id="current-month">Mes Año</h2>
+                    <button class="btn" id="next-month">Mes Siguiente</button>
+                </div>
+                <div id="calendar-grid" class="calendar-grid">
+                    <!-- El calendario se generará dinámicamente con JavaScript -->
+                </div>
+            </div>
+        </div>
+         <!-- ✅ NUEVA - Página de Mensajes -->
+        <div id="messages-page" class="page">
+            <!-- El contenido se cargará dinámicamente -->
+        </div>
+        <!-- ✅ NUEVA - Página de Reportes -->
+        <div id="reports-page" class="page">
+    <!-- El contenido se cargará dinámicamente desde reports.js -->
+        </div>
+    </div>
+
+    
+    <script src="./js/data.js"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/navigation.js"></script>
+    <script src="./js/campaings.js"></script>
+    <script src="./js/applications.js"></script>
+    <script src="./js/search.js"></script>
+    <script src="./js/volunteer.js"></script>
+    <script src="./js/calendar.js"></script>
+    <script src="./js/tasks.js"></script>
+    <script src="./js/achievements.js"></script>
+    <script src="./js/messaging.js"></script>
+    <script src="./js/reports.js"></script>
+    <script src="./js/geolocation.js"></script>
+    <script src="./js/main.js"></script>
+</body>
+</html>
